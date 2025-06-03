@@ -9,7 +9,7 @@ public record AuthRegistrationRequest(
     String username,
 
     @NotBlank(message = "Password is required")
-    @Size(min = 6, message = "Username must be longer than 5 characters")
+    @Size(min = 6, message = "Password must be longer than 5 characters")
     String password) {
 
 }

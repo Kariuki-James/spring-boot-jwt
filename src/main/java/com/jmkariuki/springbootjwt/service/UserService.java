@@ -1,6 +1,7 @@
 package com.jmkariuki.springbootjwt.service;
 
 import com.jmkariuki.springbootjwt.dto.AuthRegistrationRequest;
+import com.jmkariuki.springbootjwt.exception.UsernameAlreadyExistsException;
 import com.jmkariuki.springbootjwt.model.User;
 import com.jmkariuki.springbootjwt.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,13 +22,14 @@ public class UserService {
 
   public void registerUser(AuthRegistrationRequest request) {
     if (userRepository.existsByUsername(request.username())) {
-      throw new RuntimeException("Username already exists");
+      throw new UsernameAlreadyExistsException("Username already exists");
     }
 
     User user = new User();
     user.setUsername(request.username());
     user.setPassword(passwordEncoder.encode(request.password()));
     user.setEnabled(true);
+    user.addAuthority("ROLE_USER");
 
     userRepository.save(user);
   }

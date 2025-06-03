@@ -5,11 +5,12 @@ drop index if exists ix_auth_username;
 create table if not exists users (
     id bigserial primary key,
     username varchar(50) not null unique,
-    password varchar(500) not null,
+    password varchar(300) not null,
     enabled boolean not null
 );
 
 create table if not exists authorities (
+    id bigserial primary key,
     username varchar(50) not null,
     authority varchar(50) not null,
     constraint fk_authorities_users foreign key(username) references users(username)
