@@ -9,13 +9,13 @@ import com.nimbusds.jose.proc.SecurityContext;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.Map;
-import javax.sql.DataSource;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManagerResolver;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.BadJwtException;
@@ -26,13 +26,18 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationProvider;
 import org.springframework.security.oauth2.server.resource.authentication.JwtIssuerAuthenticationManagerResolver;
-import org.springframework.security.provisioning.JdbcUserDetailsManager;
-import org.springframework.security.provisioning.UserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+    @Value("${spring.application.name}")
+    private String applicationName;
+
+    @Value("${custom.security.jwt.issuer.google}")
+    private String googleIssuer;
+
 
     private final OctetSequenceKey jwk;
 
@@ -44,23 +49,19 @@ public class SecurityConfig {
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(
                 auth -> {
                     auth
                         .requestMatchers("/auth/register-user").permitAll()
+                        .requestMatchers("/auth/login").permitAll()
                         .anyRequest().authenticated();
                 })
-            .httpBasic(Customizer.withDefaults())
-            .formLogin(Customizer.withDefaults())
             .oauth2ResourceServer(oauth2 ->
                 oauth2.authenticationManagerResolver(authenticationManagerResolver()));
 
         return http.build();
-    }
-
-    @Bean
-    UserDetailsManager users(DataSource dataSource) {
-        return new JdbcUserDetailsManager(dataSource);
     }
 
     @Bean
@@ -81,16 +82,14 @@ public class SecurityConfig {
         Map<String, JwtDecoder> jwtDecoders = new HashMap<>();
 
         // Google JWTs
-        String googleIssuer = "https://accounts.google.com";
         NimbusJwtDecoder googleDecoder = JwtDecoders.fromIssuerLocation(googleIssuer);
         jwtDecoders.put(googleIssuer, googleDecoder);
 
         // Custom JWTs
-        String customIssuer = "jmkariuki.app";
         NimbusJwtDecoder customDecoder = NimbusJwtDecoder
             .withSecretKey(this.jwk.toSecretKey())
             .build();
-        jwtDecoders.put(customIssuer, customDecoder);
+        jwtDecoders.put(applicationName, customDecoder);
 
         return new JwtIssuerAuthenticationManagerResolver(issuer -> {
             JwtDecoder decoder = jwtDecoders.get(issuer);

@@ -2,10 +2,12 @@ package com.jmkariuki.springbootjwt.service;
 
 import com.jmkariuki.springbootjwt.dto.AuthRegistrationRequest;
 import com.jmkariuki.springbootjwt.exception.UsernameAlreadyExistsException;
+import com.jmkariuki.springbootjwt.model.Authority;
 import com.jmkariuki.springbootjwt.model.User;
 import com.jmkariuki.springbootjwt.repository.UserRepository;
 import java.time.Instant;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -20,6 +22,9 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtEncoder jwtEncoder;
+
+    @Value("${spring.application.name}")
+    private String applicationName;
 
     @Autowired
     public UserService(
@@ -41,18 +46,21 @@ public class UserService {
         user.addAuthority("ROLE_USER");
 
         userRepository.save(user);
-        return createToken();
+        return createToken(user);
     }
 
-    public String createToken() {
+    public String createToken(User user) {
         Instant now = Instant.now();
+        String[] roles = user.getAuthorities().stream()
+            .map(Authority::getAuthority)
+            .toArray(String[]::new);
 
         JwtClaimsSet claims = JwtClaimsSet.builder()
-            .subject("user123")
+            .subject(user.getUsername())
             .issuedAt(now)
-            .issuer("jmkariuki.app")
+            .issuer(applicationName)
             .expiresAt(now.plusSeconds(3600))
-            .claim("roles", "ROLE_USER")
+            .claim("roles", roles)
             .build();
 
         JwsHeader header = JwsHeader.with(() -> "HS256").build();
