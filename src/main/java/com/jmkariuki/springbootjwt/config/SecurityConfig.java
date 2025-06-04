@@ -34,10 +34,10 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private final OctetSequenceKey JWK;
+    private final OctetSequenceKey jwk;
 
     public SecurityConfig() throws JOSEException {
-        this.JWK = new OctetSequenceKeyGenerator(256).generate();
+        this.jwk = new OctetSequenceKeyGenerator(256).generate();
     }
 
     @Bean
@@ -70,7 +70,7 @@ public class SecurityConfig {
 
     @Bean
     public JwtEncoder nimbusJwtEncoder() throws JOSEException {
-        JWKSet jwkSet = new JWKSet(this.JWK);
+        JWKSet jwkSet = new JWKSet(this.jwk);
         JWKSource<SecurityContext> jwkSource = ((jwkSelector, securityContext) ->
             jwkSelector.select(jwkSet));
 
@@ -88,7 +88,7 @@ public class SecurityConfig {
         // Custom JWTs
         String customIssuer = "jmkariuki.app";
         NimbusJwtDecoder customDecoder = NimbusJwtDecoder
-            .withSecretKey(this.JWK.toSecretKey())
+            .withSecretKey(this.jwk.toSecretKey())
             .build();
         jwtDecoders.put(customIssuer, customDecoder);
 
